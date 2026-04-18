@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3-2組 予定・行事</title>
+    <style>
+        /* --- CSS設定 --- */
+        body { font-family: sans-serif; margin: 0; padding: 20px; background-color: #f0f2f5; }
+        .header-container { margin-bottom: 20px; }
+        h1 { color: #505050; padding: 0.5em 1em; display: inline-block; background: #dbebf8; border-radius: 25px 0px 0px 25px; font-size: 1.2rem; margin: 0; }
+        h1:before { content: '●'; color: white; margin-right: 8px; }
+        .card { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h2 { color: #00b900; font-size: 1.1rem; margin-top: 0; }
+
+        /* 天気予報のデザイン（横並び） */
+        .weather-row { display: flex; justify-content: space-around; background: linear-gradient(135deg, #e0f2fe 0%, #ffffff 100%); border: 1px solid #bae6fd; padding: 10px; }
+        .weather-item { text-align: center; flex: 1; }
+        .weather-label { font-size: 0.7rem; color: #64748b; font-weight: bold; }
+        .weather-icon { font-size: 1.8rem; margin: 5px 0; }
+        .weather-temp { font-size: 0.9rem; font-weight: bold; color: #334155; }
+
+        /* 時間割テーブル */
+        table { border-collapse: separate; border-spacing: 5px; width: 100%; }
+        table td { border-radius: 5px; text-align: center; padding: 10px 0; background-color: #e4d4bc; border: solid 1px #af9d85; color: #5d4a31; font-weight: bold; }
+        .period-label { font-size: 0.7em; display: block; color: #8e7d66; }
+
+        /* 予定・持ち物の余白設定 */
+        .info-row { margin-bottom: 20px; font-size: 0.9em; }
+        .info-label { font-weight: bold; color: #555; display: block; margin-bottom: 5px; }
+        .info-content { padding-left: 10px; color: #333; white-space: pre-wrap; }
+
+        /* カウントダウン */
+        .cd-box { background: white; border-radius: 15px; padding: 15px; margin-bottom: 15px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-left: 8px solid; }
+        .main-event { border-left-color: #ff9f43; background: linear-gradient(to right, #ffffff, #fff5e6); }
+        .main-event .cd-days { font-size: 2.5rem; color: #ff9f43; }
+        .test-container { display: flex; gap: 10px; margin-bottom: 20px; }
+        .test-container .cd-box { flex: 1; padding: 10px 5px; margin-bottom: 0; }
+        .unit-test { border-left-color: #48dbfb; }
+        .term-test { border-left-color: #ff9ff3; }
+        .exam-test { border-left-color: #ee5253; }
+        .cd-label { font-size: 0.8rem; font-weight: bold; color: #666; }
+        .cd-days { font-size: 1.5rem; font-weight: bold; }
+        /* --- タブのスタイル --- */
+.tab-container {
+    display: flex;
+    justify-content: space-around;
+    background: #fff;
+    border-radius: 10px 10px 0 0;
+    overflow: hidden;
+    margin-bottom: 0; /* 下のカードとくっつける */
+}
+.tab-item {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    cursor: pointer;
+    background: #e0e0e0;
+    color: #666;
+    font-weight: bold;
+    transition: 0.3s;
+    border-bottom: 3px solid transparent;
+}
+.tab-item.active {
+    background: #fff;
+    color: #00b900;
+    border-bottom: 3px solid #00b900;
+}
+
+/* カードの角丸を調整（タブとつなげるため） */
+.card.timetable-card {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+</style>
+</head>
+<body>
+    <div class="header-container">
+    <h1>3学年 予定・行事</h1>
+</div>
+
+<div class="cd-box main-event">
+     <div class="cd-label">🚌 修学旅行まで</div>
+     <div class="cd-days"><span id="days-trip">--</span> 日</div>
+    </div>
+    <div class="test-container">
+        <div class="cd-box unit-test"><div class="cd-label">📝 学力テスト</div><div class="cd-days"><span id="days-unit">--</span>日</div></div>
+        <div class="cd-box term-test"><div class="cd-label">✍️ 期末テスト</div><div class="cd-days"><span id="days-term">--</span>日</div></div>
+        <div class="cd-box exam-test"><div class="cd-label">🔥 受験　2月15日の場合</div><div class="cd-days"><span id="days-exam">--</span>日</div></div>
+    </div>
+</div>
+<div class="tab-container">
+    <div class="tab-item active" onclick="switchClass('1組')">1組</div>
+    <div class="tab-item" onclick="switchClass('2組')">2組</div>
+    <div class="tab-item" onclick="switchClass('3組')">3組</div>
+</div>
+
+<div class="card timetable-card">
+    <h2 id="timetable-title">予定を確認中... 📅</h2>
+    <div id="timetable-container">
+        <p>読み込み中...</p>
+    </div>
+    <div id="other-info" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+        準備中...
+    </div>
+</div>
+
+<div class="weather-row card">
+    </div>
+
+
+    <div class="weather-row card">
+        <div class="weather-item">
+            <div class="weather-label">朝 (9:00)</div>
+            <div class="weather-icon" id="icon-morning">--</div>
+            <div class="weather-temp"><span id="temp-morning">--</span>℃</div>
+        </div>
+        <div class="weather-item">
+            <div class="weather-label">昼 (15:00)</div>
+            <div class="weather-icon" id="icon-noon">--</div>
+            <div class="weather-temp"><span id="temp-noon">--</span>℃</div>
+        </div>
+        <div class="weather-item">
+            <div class="weather-label">晩 (21:00)</div>
+            <div class="weather-icon" id="icon-evening">--</div>
+            <div class="weather-temp"><span id="temp-evening">--</span>℃</div>
+        </div>
+    </div>
+
+<script>
+    // --- 設定エリア ---
+    let currentClass = "2組"; 
+    let allData = [];        
+    const GAS_URL = "https://script.google.com/macros/s/AKfycby4BzPOZeZjh34Ag5eXS6jDyb6p_SOrRSJAN5kSx-08Llueki8klNN1pbLwsY9bB1KRGg/exec";
+
+    // 1. カウントダウン
+    function updateCountdown(id, targetStr) {
+        const element = document.getElementById(id);
+        if (!element) return;
+        const target = new Date(targetStr);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        target.setHours(0, 0, 0, 0);
+        const diffDays = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+        element.innerText = diffDays >= 0 ? diffDays : "終了";
+    }
+
+    // 2. タブ切り替え（ここがクリックで動く部分）
+    function switchClass(className) {
+    currentClass = className;
+    
+    // タブの見た目を更新
+    const tabs = document.querySelectorAll('.tab-item');
+    tabs.forEach(tab => {
+        tab.classList.toggle('active', tab.innerText === className);
+    });
+    
+    // 通信はせずに、すでに持っている allData から今のクラス分を再表示
+    renderContent(); 
+}
+
+    // 3. 画面の表示処理
+    function renderContent() {
+        if (allData.length === 0) return;
+
+        const now = new Date();
+        const hour = now.getHours();
+        const dayOfWeek = now.getDay(); 
+        let targetDate = new Date();
+
+        // 明日の判定ロジック
+        if (hour >= 12) {
+            if (dayOfWeek === 5) targetDate.setDate(now.getDate() + 3);
+            else if (dayOfWeek === 6) targetDate.setDate(now.getDate() + 2);
+            else targetDate.setDate(now.getDate() + 1);
+        } else {
+            if (dayOfWeek === 6) targetDate.setDate(now.getDate() + 2);
+            else if (dayOfWeek === 0) targetDate.setDate(now.getDate() + 1);
+        }
+
+        const y = targetDate.getFullYear();
+        const m = ("0" + (targetDate.getMonth() + 1)).slice(-2);
+        const d = ("0" + targetDate.getDate()).slice(-2);
+        const targetStrFull = `${y}/${m}/${d}`;
+        const targetStrShort = `${y}/${parseInt(m)}/${parseInt(d)}`;
+
+        document.getElementById('timetable-title').innerText = `${targetDate.getMonth() + 1}月${targetDate.getDate()}日（${["日", "月", "火", "水", "木", "金", "土"][targetDate.getDay()]}曜日）📅`;
+
+        // ★データの検索（日付 ＋ 「組」）
+        const targetData = allData.find(row => 
+            row.date && 
+            (row.date.includes(targetStrFull) || row.date.includes(targetStrShort)) &&
+            (row.組 === currentClass) 
+        );
+
+        if (targetData) {
+            // 天気の表示（GAS側の項目名に合わせる）
+            document.getElementById('icon-morning').innerText = targetData.weather_morning || "--";
+            document.getElementById('icon-noon').innerText    = targetData.weather_noon    || "--";
+            document.getElementById('icon-evening').innerText = targetData.weather_evening || "--";
+            document.getElementById('temp-morning').innerText = targetData.temp_morning || "--";
+            document.getElementById('temp-noon').innerText    = targetData.temp_noon    || "--";
+            document.getElementById('temp-evening').innerText = targetData.temp_evening || "--";
+
+            // 時間割の表示
+            document.getElementById('timetable-container').innerHTML = `
+                <table>
+                    <tr><td><span class="period-label">1</span>${targetData.p1 || 'ー'}</td><td><span class="period-label">2</span>${targetData.p2 || 'ー'}</td><td><span class="period-label">3</span>${targetData.p3 || 'ー'}</td></tr>
+                    <tr><td><span class="period-label">4</span>${targetData.p4 || 'ー'}</td><td><span class="period-label">5</span>${targetData.p5 || 'ー'}</td><td><span class="period-label">6</span>${targetData.p6 || 'ー'}</td></tr>
+                </table>`;
+
+            // 共通情報の表示
+            document.getElementById('other-info').innerHTML = `
+                <div class="info-row"><span class="info-label">🎒 持ち物:</span><div class="info-content">${targetData.items || 'なし'}</div></div>
+                <div class="info-row"><span class="info-label">🚩 行事:</span><div class="info-content">${targetData.event || 'なし'}</div></div>
+                <div class="info-row"><span class="info-label">📝 備考:</span><div class="info-content">${targetData.memo || '特になし'}</div></div>`;
+        } else {
+            document.getElementById('timetable-container').innerHTML = `<p>${currentClass}のデータが見つかりません</p>`;
+        }
+    }
+
+    // 4. 最初に実行される関数
+    async function loadData() {
+        try {
+            updateCountdown('days-trip', '2026/06/17');
+            updateCountdown('days-unit', '2026/05/7');
+            updateCountdown('days-term', '2026/06/23');
+            updateCountdown('days-exam', '2027/02/15');
+
+            const response = await fetch(GAS_URL);
+            allData = await response.json();
+            
+            console.log("取得データ:", allData); // デバッグ用
+            renderContent();
+        } catch (error) {
+            console.error("エラー:", error);
+            document.getElementById('timetable-container').innerText = "通信エラーが発生しました";
+        }
+    }
+
+    loadData();
+</script>
+</body>
+</html>
