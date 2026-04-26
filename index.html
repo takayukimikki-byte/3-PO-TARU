@@ -232,6 +232,7 @@ const response = await fetch(GAS_URL, {
         
         // GAS側をJSON形式にしたなら .json()。JSONPのままなら .text()
         const text = await response.text(); 
+console.log("Raw Text from GAS:", text); // ← これを追加！
         
         // もしGASが callback(...) という文字列を返してきている場合の保険
         if (text.startsWith("undefined(")) {
