@@ -131,7 +131,6 @@
     // --- 設定エリア ---
     let currentClass = "1組"; 
     let allData = [];        
-    // ★ここに「新しいデプロイ」で発行された最新URLを貼る
     const GAS_URL = "https://script.google.com/macros/s/AKfycby4BzPOZeZjh34Ag5eXS6jDyb6p_SOrRSJAN5kSx-08Llueki8klNN1pbLwsY9bB1KRGg/exec";
 
     function updateCountdown(id, targetStr) {
@@ -155,7 +154,10 @@
     }
 
     function renderContent() {
-        if (!allData || allData.length === 0) return;
+        if (!allData || allData.length === 0) {
+            document.getElementById('timetable-container').innerHTML = "<p>データを読み込み中です...</p>";
+            return;
+        }
 
         const now = new Date();
         const hour = now.getHours();
@@ -176,20 +178,20 @@
         const m = ("0" + (targetDate.getMonth() + 1)).slice(-2);
         const d = ("0" + targetDate.getDate()).slice(-2);
         
-        const targetStrFull = `${y}/${m}/${d}`; // 2026/04/18
-        const targetStrShort = `${y}/${parseInt(m)}/${parseInt(d)}`; // 2026/4/18
+        // 比較用の日付文字列 (2026/04/26)
+        const targetStr = `${y}/${m}/${d}`;
 
         document.getElementById('timetable-title').innerText = `${targetDate.getMonth() + 1}月${targetDate.getDate()}日（${["日", "月", "火", "水", "木", "金", "土"][targetDate.getDay()]}曜日）📅`;
 
-        // データの検索（日付 ＋ 「組」）
+        // データの検索
         const targetData = allData.find(row => {
-            const rowDate = String(row.date || "");
-            return (rowDate.includes(targetStrFull) || rowDate.includes(targetStrShort)) &&
-                   (row.組 === currentClass);
+            // スプレッドシートの1列目のヘッダーが "date" でも "日付" でも対応できるように
+            const rowDate = String(row.date || row.日付 || "").trim();
+            return rowDate === targetStr && row.組 === currentClass;
         });
 
         if (targetData) {
-            // 天気
+            // 天気 (ヘッダー名に合わせて修正)
             document.getElementById('icon-morning').innerText = targetData.weather_morning || "--";
             document.getElementById('icon-noon').innerText    = targetData.weather_noon    || "--";
             document.getElementById('icon-evening').innerText = targetData.weather_evening || "--";
@@ -210,7 +212,7 @@
                 <div class="info-row"><span class="info-label">🚩 行事:</span><div class="info-content">${targetData.event || 'なし'}</div></div>
                 <div class="info-row"><span class="info-label">📝 備考:</span><div class="info-content">${targetData.memo || '特になし'}</div></div>`;
         } else {
-            document.getElementById('timetable-container').innerHTML = `<p>${currentClass}のデータが見つかりません</p>`;
+            document.getElementById('timetable-container').innerHTML = `<p>${targetStr} の ${currentClass} のデータが見つかりません</p>`;
         }
     }
 
@@ -221,37 +223,32 @@
             updateCountdown('days-term', '2026/06/23');
             updateCountdown('days-exam', '2027/02/15');
 
-            // GitHubからの通信を安定させるためのフェッチ設定
-const response = await fetch(GAS_URL, {
-            method: 'GET',
-            mode: 'cors', // これが大事
-            redirect: 'follow' // これがないとGoogleの転送で失敗する
-        });
-        
-        if (!response.ok) throw new Error('Network response was not ok');
-        
-        // GAS側をJSON形式にしたなら .json()。JSONPのままなら .text()
-        const text = await response.text(); 
-console.log("Raw Text from GAS:", text); // ← これを追加！
-        
-        // もしGASが callback(...) という文字列を返してきている場合の保険
-        if (text.startsWith("undefined(")) {
-             allData = JSON.parse(text.slice(10, -1));
-        } else if (text.includes("(")) {
-             allData = JSON.parse(text.substring(text.indexOf("(") + 1, text.lastIndexOf(")")));
-        } else {
-             allData = JSON.parse(text);
+            const response = await fetch(GAS_URL, {
+                method: 'GET',
+                redirect: 'follow'
+            });
+            
+            if (!response.ok) throw new Error('通信エラー');
+            
+            const text = await response.text(); 
+            console.log("Raw Text:", text);
+            
+            // JSONパース (JSONP対策含む)
+            if (text.includes("(")) {
+                allData = JSON.parse(text.substring(text.indexOf("(") + 1, text.lastIndexOf(")")));
+            } else {
+                allData = JSON.parse(text);
+            }
+            
+            console.log("Loaded Data:", allData);
+            renderContent();
+        } catch (error) {
+            console.error("Fetch Error:", error);
+            document.getElementById('timetable-container').innerText = "データの取得に失敗しました。";
         }
-        
-        console.log("Data Loaded:", allData);
-        renderContent();
-    } catch (error) {
-        console.error("Fetch Error:", error);
-        document.getElementById('timetable-container').innerText = "接続に失敗しました。URLが最新か、GASが正しく公開されているか確認してください。";
     }
-}
 
-    loadData();
+    window.onload = loadData;
 </script>
 </body>
 </html>
