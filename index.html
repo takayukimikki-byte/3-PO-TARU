@@ -41,73 +41,86 @@
         .exam-test { border-left-color: #ee5253; }
         .cd-label { font-size: 0.8rem; font-weight: bold; color: #666; }
         .cd-days { font-size: 1.5rem; font-weight: bold; }
-        /* --- タブのスタイル --- */
-.tab-container {
-    display: flex;
-    justify-content: space-around;
-    background: #fff;
-    border-radius: 10px 10px 0 0;
-    overflow: hidden;
-    margin-bottom: 0; /* 下のカードとくっつける */
-}
-.tab-item {
-    flex: 1;
-    padding: 12px;
-    text-align: center;
-    cursor: pointer;
-    background: #e0e0e0;
-    color: #666;
-    font-weight: bold;
-    transition: 0.3s;
-    border-bottom: 3px solid transparent;
-}
-.tab-item.active {
-    background: #fff;
-    color: #00b900;
-    border-bottom: 3px solid #00b900;
-}
 
-/* カードの角丸を調整（タブとつなげるため） */
-.card.timetable-card {
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
-}
-</style>
+        /* --- タブのスタイル --- */
+        .tab-container {
+            display: flex;
+            justify-content: space-around;
+            background: #fff;
+            border-radius: 10px 10px 0 0;
+            overflow: hidden;
+            margin-bottom: 0;
+        }
+        .tab-item {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            background: #e0e0e0;
+            color: #666;
+            font-weight: bold;
+            transition: 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+        .tab-item.active {
+            background: #fff;
+            color: #00b900;
+            border-bottom: 3px solid #00b900;
+        }
+
+        /* カードの角丸を調整（タブとつなげるため） */
+        .card.timetable-card {
+            border-top-left-radius: 0;
+            border-top-right-radius: 0;
+        }
+
+        /* エラー・デバッグ表示 */
+        #debug-info {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-size: 0.8rem;
+            color: #856404;
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <div class="header-container">
-    <h1>3学年 予定・行事</h1>
-</div>
+        <h1>3学年 予定・行事</h1>
+    </div>
 
-<div class="cd-box main-event">
-     <div class="cd-label">🚌 修学旅行まで</div>
-     <div class="cd-days"><span id="days-trip">--</span> 日</div>
+    <!-- ★修正: 閉じていなかった div を削除し、構造を整理 -->
+    <div class="cd-box main-event">
+        <div class="cd-label">🚌 修学旅行まで</div>
+        <div class="cd-days"><span id="days-trip">--</span> 日</div>
     </div>
     <div class="test-container">
         <div class="cd-box unit-test"><div class="cd-label">📝 学力テスト</div><div class="cd-days"><span id="days-unit">--</span>日</div></div>
         <div class="cd-box term-test"><div class="cd-label">✍️ 期末テスト</div><div class="cd-days"><span id="days-term">--</span>日</div></div>
         <div class="cd-box exam-test"><div class="cd-label">🔥 受験　2月15日の場合</div><div class="cd-days"><span id="days-exam">--</span>日</div></div>
     </div>
-</div>
-<div class="tab-container">
-    <div class="tab-item active" onclick="switchClass('1組')">1組</div>
-    <div class="tab-item" onclick="switchClass('2組')">2組</div>
-    <div class="tab-item" onclick="switchClass('3組')">3組</div>
-</div>
 
-<div class="card timetable-card">
-    <h2 id="timetable-title">予定を確認中... 📅</h2>
-    <div id="timetable-container">
-        <p>読み込み中...</p>
-    </div>
-    <div id="other-info" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
-        準備中...
-    </div>
-</div>
+    <!-- デバッグ情報（問題発生時に表示） -->
+    <div id="debug-info"></div>
 
-<div class="weather-row card">
+    <div class="tab-container">
+        <div class="tab-item active" onclick="switchClass('1組')">1組</div>
+        <div class="tab-item" onclick="switchClass('2組')">2組</div>
+        <div class="tab-item" onclick="switchClass('3組')">3組</div>
     </div>
 
+    <div class="card timetable-card">
+        <h2 id="timetable-title">予定を確認中... 📅</h2>
+        <div id="timetable-container">
+            <p>読み込み中...</p>
+        </div>
+        <div id="other-info" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+            準備中...
+        </div>
+    </div>
 
     <div class="weather-row card">
         <div class="weather-item">
@@ -129,9 +142,17 @@
 
 <script>
     // --- 設定エリア ---
-    let currentClass = "1組"; 
-    let allData = [];        
+    let currentClass = "1組";
+    let allData = [];
     const GAS_URL = "https://script.google.com/macros/s/AKfycby4BzPOZeZjh34Ag5eXS6jDyb6p_SOrRSJAN5kSx-08Llueki8klNN1pbLwsY9bB1KRGg/exec";
+
+    // ★修正: デバッグ情報を表示する関数
+    function showDebug(msg) {
+        const el = document.getElementById('debug-info');
+        el.style.display = 'block';
+        el.innerHTML = '⚠️ ' + msg;
+        console.warn(msg);
+    }
 
     function updateCountdown(id, targetStr) {
         const element = document.getElementById(id);
@@ -150,19 +171,21 @@
         tabs.forEach(tab => {
             tab.classList.toggle('active', tab.innerText === className);
         });
-        renderContent(); 
+        renderContent();
     }
 
     function renderContent() {
         if (!allData || allData.length === 0) {
-            document.getElementById('timetable-container').innerHTML = "<p>データを読み込み中です...</p>";
+            document.getElementById('timetable-container').innerHTML =
+                "<p>⚠️ スプレッドシートにデータがありません。GASのスプレッドシートにデータを入力してください。</p>";
+            document.getElementById('other-info').innerHTML = "";
             return;
         }
 
         const now = new Date();
         const hour = now.getHours();
-        const dayOfWeek = now.getDay(); 
-        let targetDate = new Date();
+        const dayOfWeek = now.getDay();
+        let targetDate = new Date(now);
 
         // 12時を過ぎたら翌日（金曜なら月曜）の予定を出す
         if (hour >= 12) {
@@ -177,33 +200,49 @@
         const y = targetDate.getFullYear();
         const m = ("0" + (targetDate.getMonth() + 1)).slice(-2);
         const d = ("0" + targetDate.getDate()).slice(-2);
-        
-        // 比較用の日付文字列 (2026/04/26)
-        const targetStr = `${y}/${m}/${d}`;
 
-        document.getElementById('timetable-title').innerText = `${targetDate.getMonth() + 1}月${targetDate.getDate()}日（${["日", "月", "火", "水", "木", "金", "土"][targetDate.getDay()]}曜日）📅`;
+        // ★修正: スプレッドシートの日付形式に合わせて複数パターンで比較
+        const targetStr_slash  = `${y}/${m}/${d}`;          // 2026/04/26
+        const targetStr_hyphen = `${y}-${m}-${d}`;          // 2026-04-26
+        const targetStr_jp     = `${y}年${m}月${d}日`;      // 2026年04月26日
 
-        // データの検索
+        document.getElementById('timetable-title').innerText =
+            `${targetDate.getMonth() + 1}月${targetDate.getDate()}日（${["日","月","火","水","木","金","土"][targetDate.getDay()]}曜日）📅`;
+
+        // ★修正: 日付の比較を複数形式に対応、かつ組の列名も柔軟に対応
         const targetData = allData.find(row => {
-            // スプレッドシートの1列目のヘッダーが "date" でも "日付" でも対応できるように
             const rowDate = String(row.date || row.日付 || "").trim();
-            return rowDate === targetStr && row.組 === currentClass;
+            const rowClass = String(row.組 || row.class || row.クラス || "").trim();
+            const dateMatch =
+                rowDate === targetStr_slash  ||
+                rowDate === targetStr_hyphen ||
+                rowDate === targetStr_jp     ||
+                rowDate === `${y}/${Number(m)}/${Number(d)}`; // 2026/4/26 (ゼロなし)
+            return dateMatch && rowClass === currentClass;
         });
 
         if (targetData) {
-            // 天気 (ヘッダー名に合わせて修正)
-            document.getElementById('icon-morning').innerText = targetData.weather_morning || "--";
-            document.getElementById('icon-noon').innerText    = targetData.weather_noon    || "--";
-            document.getElementById('icon-evening').innerText = targetData.weather_evening || "--";
-            document.getElementById('temp-morning').innerText = targetData.temp_morning || "--";
-            document.getElementById('temp-noon').innerText    = targetData.temp_noon    || "--";
-            document.getElementById('temp-evening').innerText = targetData.temp_evening || "--";
+            // 天気
+            document.getElementById('icon-morning').innerText  = targetData.weather_morning || "--";
+            document.getElementById('icon-noon').innerText     = targetData.weather_noon    || "--";
+            document.getElementById('icon-evening').innerText  = targetData.weather_evening || "--";
+            document.getElementById('temp-morning').innerText  = targetData.temp_morning    || "--";
+            document.getElementById('temp-noon').innerText     = targetData.temp_noon       || "--";
+            document.getElementById('temp-evening').innerText  = targetData.temp_evening    || "--";
 
             // 時間割
             document.getElementById('timetable-container').innerHTML = `
                 <table>
-                    <tr><td><span class="period-label">1</span>${targetData.p1 || 'ー'}</td><td><span class="period-label">2</span>${targetData.p2 || 'ー'}</td><td><span class="period-label">3</span>${targetData.p3 || 'ー'}</td></tr>
-                    <tr><td><span class="period-label">4</span>${targetData.p4 || 'ー'}</td><td><span class="period-label">5</span>${targetData.p5 || 'ー'}</td><td><span class="period-label">6</span>${targetData.p6 || 'ー'}</td></tr>
+                    <tr>
+                        <td><span class="period-label">1</span>${targetData.p1 || 'ー'}</td>
+                        <td><span class="period-label">2</span>${targetData.p2 || 'ー'}</td>
+                        <td><span class="period-label">3</span>${targetData.p3 || 'ー'}</td>
+                    </tr>
+                    <tr>
+                        <td><span class="period-label">4</span>${targetData.p4 || 'ー'}</td>
+                        <td><span class="period-label">5</span>${targetData.p5 || 'ー'}</td>
+                        <td><span class="period-label">6</span>${targetData.p6 || 'ー'}</td>
+                    </tr>
                 </table>`;
 
             // 共通情報
@@ -212,7 +251,16 @@
                 <div class="info-row"><span class="info-label">🚩 行事:</span><div class="info-content">${targetData.event || 'なし'}</div></div>
                 <div class="info-row"><span class="info-label">📝 備考:</span><div class="info-content">${targetData.memo || '特になし'}</div></div>`;
         } else {
-            document.getElementById('timetable-container').innerHTML = `<p>${targetStr} の ${currentClass} のデータが見つかりません</p>`;
+            // ★修正: 見つからない場合にデバッグ情報を表示
+            const availableDates = [...new Set(allData.map(r => String(r.date || r.日付 || "").trim()))].join(", ");
+            const availableClasses = [...new Set(allData.map(r => String(r.組 || r.class || "").trim()))].join(", ");
+            document.getElementById('timetable-container').innerHTML =
+                `<p>${targetStr_slash} の ${currentClass} のデータが見つかりません</p>`;
+            showDebug(
+                `検索日: ${targetStr_slash} ／ 組: ${currentClass}<br>` +
+                `スプレッドシートにある日付: ${availableDates || "(なし)"}<br>` +
+                `スプレッドシートにある組: ${availableClasses || "(なし)"}`
+            );
         }
     }
 
@@ -223,30 +271,65 @@
             updateCountdown('days-term', '2026/06/23');
             updateCountdown('days-exam', '2027/02/15');
 
+            // ★修正: CORSエラー回避のため mode: 'cors' を明示、キャッシュ無効化
             const response = await fetch(GAS_URL, {
                 method: 'GET',
-                redirect: 'follow'
+                redirect: 'follow',
+                mode: 'cors',
+                cache: 'no-cache'
             });
-            
-            if (!response.ok) throw new Error('通信エラー');
-            
-            const text = await response.text(); 
+
+            if (!response.ok) throw new Error(`HTTPエラー: ${response.status}`);
+
+            const text = await response.text();
             console.log("Raw Text:", text);
-            
-            // JSONパース (JSONP対策含む)
-// JSONパース部分をより確実に
-try {
-    allData = JSON.parse(text);
-} catch (e) {
-    // もしJSONP形式で返ってきてしまった場合の保険
-    allData = JSON.parse(text.match(/\{.*\}/)[0]);
-}
-            
+
+            // ★修正: 空配列・空文字・JSONP形式すべてに対応した堅牢なパース
+            let parsed;
+            const trimmed = text.trim();
+
+            if (!trimmed || trimmed === "[]" || trimmed === "{}") {
+                // スプレッドシートが空の場合
+                allData = [];
+                showDebug("GASからデータが返ってきていません（空配列）。スプレッドシートにデータが入力されているか確認してください。");
+                renderContent();
+                return;
+            }
+
+            try {
+                parsed = JSON.parse(trimmed);
+            } catch (e1) {
+                // JSONP形式 (callback({...})) の場合
+                const match = trimmed.match(/[\[\{].*[\]\}]/s);
+                if (match) {
+                    try {
+                        parsed = JSON.parse(match[0]);
+                    } catch (e2) {
+                        throw new Error("JSONパース失敗: " + e2.message);
+                    }
+                } else {
+                    throw new Error("レスポンスがJSON形式ではありません: " + trimmed.slice(0, 100));
+                }
+            }
+
+            // ★修正: 配列でない場合（オブジェクトで返ってくる場合）も対応
+            if (Array.isArray(parsed)) {
+                allData = parsed;
+            } else if (parsed && typeof parsed === 'object') {
+                // { data: [...] } 形式の場合
+                allData = parsed.data || parsed.rows || Object.values(parsed);
+            } else {
+                allData = [];
+            }
+
             console.log("Loaded Data:", allData);
             renderContent();
+
         } catch (error) {
             console.error("Fetch Error:", error);
-            document.getElementById('timetable-container').innerText = "データの取得に失敗しました。";
+            document.getElementById('timetable-container').innerHTML =
+                `<p>❌ データの取得に失敗しました。<br><small>${error.message}</small></p>`;
+            showDebug("取得エラー: " + error.message + "<br>GASのデプロイ設定（アクセス権限: 全員）を確認してください。");
         }
     }
 
