@@ -85,6 +85,76 @@
             color: #856404;
             display: none;
         }
+
+        /* 共通情報のスタイル */
+        .common-info {
+            border-left: 4px solid #00b900;
+            background: #f0f8f0;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+        .common-date {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        /* 受験対策問題のスタイル */
+        .exam-question {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .exam-question-header {
+            background: #e3f2fd;
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+        .exam-difficulty {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .exam-difficulty-easy { background: #90EE90; color: #333; }
+        .exam-difficulty-medium { background: #FFD700; color: #333; }
+        .exam-difficulty-hard { background: #FF6B6B; color: white; }
+        .exam-question-text { margin: 0; color: #333; font-weight: 500; }
+        .exam-question-body {
+            padding: 15px;
+        }
+        .exam-answer-button {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: 0.3s;
+        }
+        .exam-answer-button:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+        .exam-answer {
+            background: #f0f8f0;
+            padding: 15px;
+            border-left: 4px solid #00b900;
+            border-radius: 6px;
+            color: #333;
+        }
+
+        /* 非表示セクション */
+        .hidden-section {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -92,7 +162,6 @@
         <h1>3学年 予定・行事</h1>
     </div>
 
-    <!-- ★修正: 閉じていなかった div を削除し、構造を整理 -->
     <div class="cd-box main-event">
         <div class="cd-label">🚌 修学旅行まで</div>
         <div class="cd-days"><span id="days-trip">--</span> 日</div>
@@ -106,6 +175,15 @@
     <!-- デバッグ情報（問題発生時に表示） -->
     <div id="debug-info"></div>
 
+    <!-- ★ 共通情報セクション（カウントダウンの下） -->
+    <div class="card" id="common-section">
+        <h2>📢 学年連絡事項</h2>
+        <div id="common-container">
+            <p>読み込み中...</p>
+        </div>
+    </div>
+
+    <!-- ★ クラス別タブ（1組、2組、3組のみ） -->
     <div class="tab-container">
         <div class="tab-item active" onclick="switchClass('1組')">1組</div>
         <div class="tab-item" onclick="switchClass('2組')">2組</div>
@@ -140,13 +218,25 @@
         </div>
     </div>
 
+    <!-- ★ 受験対策セクション（クラス別タブの下） -->
+    <div class="card" id="exam-section">
+        <h2>📚 受験対策問題集</h2>
+        <div id="exam-container">
+            <p>読み込み中...</p>
+        </div>
+    </div>
+
 <script>
     // --- 設定エリア ---
     let currentClass = "1組";
-    let allData = [];
+    let allData = {
+        classData: [],
+        commonData: [],
+        examData: []
+    };
     const GAS_URL = "https://script.google.com/macros/s/AKfycby4BzPOZeZjh34Ag5eXS6jDyb6p_SOrRSJAN5kSx-08Llueki8klNN1pbLwsY9bB1KRGg/exec";
 
-    // ★修正: デバッグ情報を表示する関数
+    // デバッグ情報を表示する関数
     function showDebug(msg) {
         const el = document.getElementById('debug-info');
         el.style.display = 'block';
@@ -174,8 +264,77 @@
         renderContent();
     }
 
+    // 共通情報を表示する関数
+    function renderCommonInfo() {
+        if (!allData.commonData || allData.commonData.length === 0) {
+            document.getElementById('common-container').innerHTML = "<p>共通の連絡事項はありません</p>";
+            return;
+        }
+
+        let html = "";
+        allData.commonData.forEach(item => {
+            html += `
+                <div class="common-info">
+                    <div class="common-date">${item.date || ""} ${item.status ? "[" + item.status + "]" : ""}</div>
+                    ${item.items ? `<div class="info-row"><span class="info-label">🎒 持ち物:</span><div class="info-content">${item.items}</div></div>` : ""}
+                    ${item.event ? `<div class="info-row"><span class="info-label">🚩 行事:</span><div class="info-content">${item.event}</div></div>` : ""}
+                    ${item.memo ? `<div class="info-row"><span class="info-label">📝 備考:</span><div class="info-content">${item.memo}</div></div>` : ""}
+                </div>
+            `;
+        });
+        document.getElementById('common-container').innerHTML = html;
+    }
+
+    // 受験対策問題を表示する関数
+    function renderExamQuestions() {
+        if (!allData.examData || allData.examData.length === 0) {
+            document.getElementById('exam-container').innerHTML = "<p>受験対策問題がありません</p>";
+            return;
+        }
+
+        let html = "";
+        allData.examData.forEach((item, idx) => {
+            const answerId = "answer-" + idx;
+            let difficultyClass = "";
+            if (item.difficulty === "易") difficultyClass = "exam-difficulty-easy";
+            else if (item.difficulty === "中") difficultyClass = "exam-difficulty-medium";
+            else if (item.difficulty === "難") difficultyClass = "exam-difficulty-hard";
+            
+            html += `
+                <div class="exam-question">
+                    <div class="exam-question-header">
+                        <span style="font-weight: bold; color: #1976d2;">${item.subject || "問題"}</span>
+                        ${item.difficulty ? `<span class="exam-difficulty ${difficultyClass}">${item.difficulty}</span>` : ""}
+                        <p class="exam-question-text">${item.question || ""}</p>
+                    </div>
+                    <div class="exam-question-body">
+                        <div id="${answerId}" style="display: block;">
+                            <button onclick="revealAnswer('${answerId}')" class="exam-answer-button">
+                                ▼ 答えを表示
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        document.getElementById('exam-container').innerHTML = html;
+    }
+
+    // 答えを表示する関数
+    function revealAnswer(answerId) {
+        const idx = parseInt(answerId.replace("answer-", ""));
+        const item = allData.examData[idx];
+        const container = document.getElementById(answerId);
+        
+        container.innerHTML = `
+            <div class="exam-answer">
+                <p style="margin: 0;">${item.answer || ""}</p>
+            </div>
+        `;
+    }
+
     function renderContent() {
-        if (!allData || allData.length === 0) {
+        if (!allData.classData || allData.classData.length === 0) {
             document.getElementById('timetable-container').innerHTML =
                 "<p>⚠️ スプレッドシートにデータがありません。GASのスプレッドシートにデータを入力してください。</p>";
             document.getElementById('other-info').innerHTML = "";
@@ -201,23 +360,21 @@
         const m = ("0" + (targetDate.getMonth() + 1)).slice(-2);
         const d = ("0" + targetDate.getDate()).slice(-2);
 
-        // ★修正: スプレッドシートの日付形式に合わせて複数パターンで比較
-        const targetStr_slash  = `${y}/${m}/${d}`;          // 2026/04/26
-        const targetStr_hyphen = `${y}-${m}-${d}`;          // 2026-04-26
-        const targetStr_jp     = `${y}年${m}月${d}日`;      // 2026年04月26日
+        const targetStr_slash  = `${y}/${m}/${d}`;
+        const targetStr_hyphen = `${y}-${m}-${d}`;
+        const targetStr_jp     = `${y}年${m}月${d}日`;
 
         document.getElementById('timetable-title').innerText =
             `${targetDate.getMonth() + 1}月${targetDate.getDate()}日（${["日","月","火","水","木","金","土"][targetDate.getDay()]}曜日）📅`;
 
-        // ★修正: 日付の比較を複数形式に対応、かつ組の列名も柔軟に対応
-        const targetData = allData.find(row => {
+        const targetData = allData.classData.find(row => {
             const rowDate = String(row.date || row.日付 || "").trim();
             const rowClass = String(row.組 || row.class || row.クラス || "").trim();
             const dateMatch =
                 rowDate === targetStr_slash  ||
                 rowDate === targetStr_hyphen ||
                 rowDate === targetStr_jp     ||
-                rowDate === `${y}/${Number(m)}/${Number(d)}`; // 2026/4/26 (ゼロなし)
+                rowDate === `${y}/${Number(m)}/${Number(d)}`;
             return dateMatch && rowClass === currentClass;
         });
 
@@ -251,9 +408,8 @@
                 <div class="info-row"><span class="info-label">🚩 行事:</span><div class="info-content">${targetData.event || 'なし'}</div></div>
                 <div class="info-row"><span class="info-label">📝 備考:</span><div class="info-content">${targetData.memo || '特になし'}</div></div>`;
         } else {
-            // ★修正: 見つからない場合にデバッグ情報を表示
-            const availableDates = [...new Set(allData.map(r => String(r.date || r.日付 || "").trim()))].join(", ");
-            const availableClasses = [...new Set(allData.map(r => String(r.組 || r.class || "").trim()))].join(", ");
+            const availableDates = [...new Set(allData.classData.map(r => String(r.date || r.日付 || "").trim()))].join(", ");
+            const availableClasses = [...new Set(allData.classData.map(r => String(r.組 || r.class || "").trim()))].join(", ");
             document.getElementById('timetable-container').innerHTML =
                 `<p>${targetStr_slash} の ${currentClass} のデータが見つかりません</p>`;
             showDebug(
@@ -271,7 +427,6 @@
             updateCountdown('days-term', '2026/06/23');
             updateCountdown('days-exam', '2027/02/15');
 
-            // ★修正: CORSエラー回避のため mode: 'cors' を明示、キャッシュ無効化
             const response = await fetch(GAS_URL, {
                 method: 'GET',
                 redirect: 'follow',
@@ -284,23 +439,11 @@
             const text = await response.text();
             console.log("Raw Text:", text);
 
-            // ★修正: 空配列・空文字・JSONP形式すべてに対応した堅牢なパース
             let parsed;
-            const trimmed = text.trim();
-
-            if (!trimmed || trimmed === "[]" || trimmed === "{}") {
-                // スプレッドシートが空の場合
-                allData = [];
-                showDebug("GASからデータが返ってきていません（空配列）。スプレッドシートにデータが入力されているか確認してください。");
-                renderContent();
-                return;
-            }
-
             try {
-                parsed = JSON.parse(trimmed);
+                parsed = JSON.parse(text);
             } catch (e1) {
-                // JSONP形式 (callback({...})) の場合
-                const match = trimmed.match(/[\[\{].*[\]\}]/s);
+                const match = text.match(/[\[\{][\s\S]*[\]\}]/);
                 if (match) {
                     try {
                         parsed = JSON.parse(match[0]);
@@ -308,21 +451,22 @@
                         throw new Error("JSONパース失敗: " + e2.message);
                     }
                 } else {
-                    throw new Error("レスポンスがJSON形式ではありません: " + trimmed.slice(0, 100));
+                    throw new Error("レスポンスがJSON形式ではありません");
                 }
             }
 
-            // ★修正: 配列でない場合（オブジェクトで返ってくる場合）も対応
-            if (Array.isArray(parsed)) {
+            // 新しいレスポンス形式に対応
+            if (parsed.classData && parsed.commonData && parsed.examData) {
                 allData = parsed;
-            } else if (parsed && typeof parsed === 'object') {
-                // { data: [...] } 形式の場合
-                allData = parsed.data || parsed.rows || Object.values(parsed);
+            } else if (Array.isArray(parsed)) {
+                allData = { classData: parsed, commonData: [], examData: [] };
             } else {
-                allData = [];
+                allData = { classData: [], commonData: [], examData: [] };
             }
 
             console.log("Loaded Data:", allData);
+            renderCommonInfo();
+            renderExamQuestions();
             renderContent();
 
         } catch (error) {
