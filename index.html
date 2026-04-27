@@ -234,11 +234,13 @@
             console.log("Raw Text:", text);
             
             // JSONパース (JSONP対策含む)
-            if (text.includes("(")) {
-                allData = JSON.parse(text.substring(text.indexOf("(") + 1, text.lastIndexOf(")")));
-            } else {
-                allData = JSON.parse(text);
-            }
+// JSONパース部分をより確実に
+try {
+    allData = JSON.parse(text);
+} catch (e) {
+    // もしJSONP形式で返ってきてしまった場合の保険
+    allData = JSON.parse(text.match(/\{.*\}/)[0]);
+}
             
             console.log("Loaded Data:", allData);
             renderContent();
